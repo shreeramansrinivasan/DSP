@@ -40,24 +40,29 @@ class NCO:
 
 
 #tests 
-input_frequency = (32/(2**21)) * 1e6
-frequency_word = 32 # Start with frequency word 1/32  
+frequency_word = 2**20 - 2**14 + 3 # Start with frequency word 1/32  
 integer_bitwidth = 16
 fractional_bitwidth = 5 # 16.5 phase accumulator bitwidth 
 phase_accumulator_bitwidth = integer_bitwidth + fractional_bitwidth
 sampling_rate_dac = 1e6 # sampling rate of the dac 
+expected_frequency = (frequency_word/(2**(phase_accumulator_bitwidth))) * sampling_rate_dac
 num_samples = int(2e6)
 lookup_table_size = 2**(integer_bitwidth)
 nco_instance = NCO(lookup_table_size,integer_bitwidth,fractional_bitwidth,frequency_word)
 nco_instance.GenerateOut(num_samples)
+plt.plot(nco_instance.output[0:(65536*2)])
+plt.show()
 sine_wave_fft = np.fft.fft(nco_instance.output)
 sine_wave_fft_abs = np.abs(sine_wave_fft)
-max_frequency_index = np.argmax(sine_wave_fft_abs)
+breakpoint()
+max_frequency_index = np.argmax(sine_wave_fft_abs[0:(num_samples//2)])
 plt.plot(20*np.log10(sine_wave_fft_abs))
 plt.show()
 plt.plot(nco_instance.sine_table.table)
 plt.show()
-print('input_frequency',input_frequency)
+print(len(sine_wave_fft_abs))
+print('expected_frequency',expected_frequency)
 print('max_frequency_index',max_frequency_index)
-is_right_frequency = bool( max_frequency_index*(sampling_rate_dac)/len(sine_wave_fft_abs) == input_frequency)
-print('is_right_frequency' , is_right_frequency)
+print(max_frequency_index*(sampling_rate_dac)/len(sine_wave_fft_abs))
+is_within_a_bin_of_right_frequency = bool( abs(max_frequency_index*(sampling_rate_dac)/len(sine_wave_fft_abs)  - expected_frequency) < (sampling_rate_dac/(2**(phase_accumulator_bitwidth))))
+print('is_within_a_bin_of_right_frequency' , is_within_a_bin_of_right_frequency)
